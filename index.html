@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>目录效果</title>
+  <style>
+    :root {
+      --active-color: #409EFF;
+    }
+
+    * {
+      padding: 0;
+      margin: 0;
+    }
+
+    .container {
+      padding: 20px;
+      display: flex;
+    }
+
+    .content {
+      flex: 1;
+    }
+
+    .item {
+      height: 300px;
+      border: 1px salmon solid;
+    }
+
+    .item+.item {
+      margin-top: 20px;
+    }
+
+    .item>h2 {
+      margin: 0;
+    }
+
+    .anchor {
+      box-sizing: border-box;
+      width: 200px;
+      /* border: 1px salmon solid; */
+      margin-left: 50px;
+    }
+
+    .anchor-content {
+      position: sticky;
+      top: 20px;
+      /* text-align: center; */
+    }
+
+    .anchor-content-marker {
+      position: absolute;
+      width: 4px;
+      height: 13px;
+      top: 5px;
+      left: 10px;
+      background-color: var(--active-color);
+      transition: top .5s;
+    }
+
+    .anchor-content-list {
+      margin-left: 20px;
+    }
+
+    .anchor-content a {
+      text-decoration: none;
+      color: #909399;
+    }
+
+    .anchor-content :hover {
+      color: #000;
+    }
+
+    a.is-active {
+      color: var(--active-color);
+    }
+
+    .anchor-box {
+      transition: color .5s;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="content">
+      <div id="box1" class="item item1">
+        <h2>box1</h2>
+        <div class="box box1"></div>
+      </div>
+
+      <div id="box2" class="item item2">
+        <h2>box2</h2>
+        <div class="box box2"></div>
+      </div>
+
+      <div id="box3" class="item item3">
+        <h2>box3</h2>
+        <div class="box box3"></div>
+      </div>
+
+      <div id="box4" class="item item4">
+        <h2>box4</h2>
+        <div class="box box4"></div>
+      </div>
+
+      <div id="box5" class="item item5">
+        <h2>box5</h2>
+        <div class="box box5"></div>
+      </div>
+
+      <div id="box6" class="item item6">
+        <h2>box6</h2>
+        <div class="box box6"></div>
+      </div>
+
+      <div id="box7" class="item item7">
+        <h2>box7</h2>
+        <div class="box box7"></div>
+      </div>
+
+      <div id="box8" class="item item8">
+        <h2>box8</h2>
+        <div class="box box8"></div>
+      </div>
+    </div>
+
+    <div class="anchor">
+      <div class="anchor-content">
+        <div class="anchor-content-marker"></div>
+        <div class="anchor-content-list">
+          <!-- TODO：动态生成目录 -->
+          <div><a href="#box1" class="anchor-box is-active">box1目录</a></div>
+          <div><a href="#box2" class="anchor-box">box2目录</a></div>
+          <div><a href="#box3" class="anchor-box">box3目录</a></div>
+          <div><a href="#box4" class="anchor-box">box4目录</a></div>
+          <div><a href="#box5" class="anchor-box">box5目录</a></div>
+          <div><a href="#box6" class="anchor-box">box6目录</a></div>
+          <div><a href="#box7" class="anchor-box">box7目录</a></div>
+          <div><a href="#box8" class="anchor-box">box8目录</a></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="./dist/rAF.js"></script>
+  <script>
+    const viewPortHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+
+    // 清除目录激活状态
+    const clearActive = () => {
+      const anchorArr = [...document.querySelectorAll('.anchor-content div>a')]
+      anchorArr.forEach(item => {
+        item.classList.remove('is-active')
+      })
+    }
+
+    // 计算目录标记位置
+    const calcAnchorMarker = (index) => {
+      const activeAnchorItem = document.querySelectorAll('.anchor-content-list>div')[index]
+      const { top } = activeAnchorItem.getBoundingClientRect()
+      document.getElementsByClassName('anchor-content-marker')[0].style.top = `${top - 15}px`
+    }
+
+    /**
+     * @description scrollBy 兼容在非现代浏览器的平滑滚动
+     * @param options 传入参数
+     * @param options.el 元素
+     * @param options.offset 滚动相对距离
+     * @param options.duration 动画时长 ms
+     * @param options.useRAF 使用RAF动画
+     */
+    const scrollBy = ({
+      el,
+      offset,
+      duration = 500,
+      useRAF = false,
+    }) => {
+      if (
+        typeof window.getComputedStyle(document.body).scrollBehavior ==
+        'undefined' ||
+        useRAF
+      ) {
+        // 传统的JS平滑滚动处理代码
+        const start = el.scrollTop
+        rAFScrollTo(el, start + offset, duration)
+      } else {
+        el.scrollBy({
+          top: offset,
+          behavior: 'smooth',
+        })
+      }
+    }
+
+    // 处理右侧目录操作
+    const handleAnchor = (el, index) => {
+      clearActive()
+      calcAnchorMarker(index)
+      el.classList.add('is-active')
+    }
+
+    // 页面加载完成滚动到当前锚点
+    addEventListener('load', () => {
+      const hash = location.hash
+      if (!hash) return
+      const currentItem = document.querySelector(hash)
+      const top = currentItem.getBoundingClientRect().top
+      // rAF兼容下，scrollTop只能在document.documentElement获取
+      // scrollBy({ el: document.documentElement, offset: top })
+      scrollBy({ el: window, offset: top })
+    })
+
+    // 右侧目录点击事件
+    let isClickAnchor = false
+    const anchorBoxArr = [...document.querySelectorAll('.anchor-box')]
+    const itemArr = [...document.querySelectorAll('.content .item')]
+    document.addEventListener('click', (e) => {
+      isClickAnchor = true
+      const isClickAnchorBox = [...e.target.classList].includes('anchor-box')
+      if (isClickAnchorBox) {
+        const index = anchorBoxArr.indexOf(e.target)
+        const top = itemArr[index].getBoundingClientRect().top
+        // rAF兼容下，scrollTop只能在document.documentElement获取
+        // scrollBy({ el: document.documentElement, offset: top })
+        scrollBy({ el: window, offset: top })
+
+        handleAnchor(e.target, anchorBoxArr.indexOf(e.target))
+
+        setTimeout(() => {
+          location.hash = e.target.hash
+        }, 300)
+        // TODO 优化
+        setTimeout(() => {
+          isClickAnchor = false
+        }, 1000)
+        e.preventDefault();
+      }
+    })
+
+
+
+    document.addEventListener('scroll', (e) => {
+      console.log('滚动开始：', e);
+
+      // 点击菜单滚动也会触发改事件，直接不处理，要不然会和菜单点击重复处理
+      if (isClickAnchor) return
+
+      const itemArr = [...document.querySelectorAll('.item')]
+
+      for (let i = 0; i < itemArr.length; i++) {
+        const item = itemArr[i]
+        const { top, bottom } = item.getBoundingClientRect()
+
+        if (bottom > 0) {
+          handleAnchor(document.querySelectorAll(`.anchor-box`)[i], i)
+          break
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
